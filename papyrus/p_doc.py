@@ -5,11 +5,12 @@ from functools import partial
 from common.defines import DOC_START, DOC_END
 from common.util import sanitize_line, read_until
 
-from .p_data import Script, Property, Event, Function
+from .p_data import Script, Property, Event, Function, Data_Factory
 
 class Doc:
-    def __init__(self, header, data):
+    def __init__(self, header, name, data):
         self.header = header
+        self.name = name
         self.data = data
 
     def __eq__(self, other):
@@ -66,13 +67,12 @@ class Doc_Factory:
     def __new__(cls, file):
         try:
             header, comment = cls._next_doc(file)
-
             data = Data_Factory(header, comment)
 
-            if isinstance(data, Property) and not header_lower.endswith(('auto', 'autoreadonly')):
-                read_until(file, cls.property_ends)
+            #if isinstance(data, Property) and not header_lower.endswith(('auto', 'autoreadonly')):
+            #    read_until(file, cls.property_ends)
 
-            return Doc(header, data)
+            return Doc(header, "", data)
         except EOFError:
             return None
 

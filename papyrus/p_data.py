@@ -72,14 +72,15 @@ class Function(Data_Param):
 
 class Data_Factory:
     def __new__(cls, header, comment):
-        data_type = cls._get_type(header)
+        #data_type = cls._get_type(header)
         
         desc = cls._parse_desc(comment)
-        
-        if variables:
-            cls._parse_vars(variables)
 
-        return cls(desc, vars_)
+        print(desc)
+        #if desc_len != len(comment):
+        #    cls._parse_vars(comment[desc_len + 1:])
+        return None
+        #return Data(desc, vars_)
 
     @staticmethod
     def _get_type(header):
@@ -94,15 +95,15 @@ class Data_Factory:
         raise Exception("No valid type!")
 
     @staticmethod
-    def _parse_desc(file):
-        has_vars = False
-        desc = ""
+    def _parse_desc(comment):    
+        i = 0
 
-        
-            
-            desc += line + '\n'
+        for line in comment:
+            if line[0] is DOC_VAR:
+                break
+            i += 1
 
-        return has_vars, desc[:-1]
+        return comment[0:i]
 
     @staticmethod
     def _parse_vars(cls, file):
