@@ -71,16 +71,23 @@ class Function(Data_Param):
     )
 
 class Data_Factory:
+    TYPES = {
+        Script.NAME : Script,
+        Property.NAME : Property,
+        Event.NAME : Event,
+        Function.NAME : Function
+    }
+
     def __new__(cls, header, comment):
         #data_type = cls._get_type(header)
         
-        desc = cls._parse_desc(comment)
+        desc = cls._parse(comment)
+        desc_len = len(desc)
 
-        print(desc)
-        #if desc_len != len(comment):
-        #    cls._parse_vars(comment[desc_len + 1:])
-        return None
-        #return Data(desc, vars_)
+        if desc_len < len(comment):
+            variables = cls._parse_vars(comment[desc_len + 1:])
+
+        return Data(desc, vars_)
 
     @staticmethod
     def _get_type(header):
@@ -95,7 +102,7 @@ class Data_Factory:
         raise Exception("No valid type!")
 
     @staticmethod
-    def _parse_desc(comment):    
+    def _parse(comment):    
         i = 0
 
         for line in comment:
@@ -106,11 +113,11 @@ class Data_Factory:
         return comment[0:i]
 
     @staticmethod
-    def _parse_vars(cls, file):
+    def _parse_vars(type, variables):
         vars_ = []
         
         while (var := Var_Factory(file)):
-            if not var.__class__ in cls.VALID_VARS:
+            if not var.__class__ in type.VALID_VARS:
                 raise Exception()
 
             if not var.__class__ == Param and any(x.__class__ is var.__class__ for x in vars_):

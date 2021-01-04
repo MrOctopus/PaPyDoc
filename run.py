@@ -8,9 +8,8 @@ import glob
 import itertools
 
 from os import path
+from common.defines import FILE_EXT
 from papyrus.p_file import PapyDoc
-
-FILE_EXT = '.psc'
 
 def is_dir(string):
     if not path.isdir(string):

@@ -1,6 +1,8 @@
 from abc import ABC
 from common.defines import DOC_VAR, DOC_END
 
+VARIABLES = {}
+
 class Var(ABC):
     NAME = ''
 
@@ -40,17 +42,18 @@ class Usage(Var):
 class Return(Var):
     NAME = 'return'
 
-VAR_TYPES = {
-    Author.NAME : Author,
-    Version.NAME : Version,
-    Param.NAME : Param,
-    Get.NAME : Get,
-    Set.NAME : Set,
-    Usage.NAME : Usage,
-    Return.NAME : Return,
-}
 
 class Var_Factory:
+    TYPES = {
+        Author.NAME : Author,
+        Version.NAME : Version,
+        Param.NAME : Param,
+        Get.NAME : Get,
+        Set.NAME : Set,
+        Usage.NAME : Usage,
+        Return.NAME : Return
+    }
+
     def __new__(cls, file):
         type_, desc = cls._parse_var(file)
 
