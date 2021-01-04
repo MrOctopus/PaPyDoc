@@ -1,72 +1,10 @@
-from common.defines import DOC_VAR, DOC_END
-
+from abc import ABC
+from common.defines import DOC_VAR
 from .p_var import Var, Author, Version, Get, Set, Usage, Param, Return
 
-class Data:
+class Data(ABC):
     NAME = ''
     VALID_VARS = ()
-
-    @classmethod
-    def from_file(cls, file):
-        has_vars, desc = cls._parse_desc(file)
-        vars_ = None
-
-        if has_vars:
-            vars_ = cls._parse_vars(file)
-
-        return cls(desc, vars_)
-
-    @staticmethod
-    def _parse_desc(file):
-        has_vars = False
-        desc = ""
-
-        # One Line comment
-        line = file.readline().strip()
-
-        if line[-1] == DOC_END:
-            desc = line[1:-1]
-            return has_vars, desc
-
-        # Multi line comment
-        while True:                        
-            prev_pos = file.tell() 
-            line = file.readline()
-
-            if not line:
-                raise Exception()
-
-            line = line.strip()
-
-            if not line:
-                continue
-
-            if line[0] == DOC_VAR:
-                has_vars = True
-                file.seek(prev_pos)
-                break
-            
-            if line[0] == DOC_END:
-                break
-            
-            desc += line + '\n'
-
-        return has_vars, desc[:-1]
-
-    @classmethod
-    def _parse_vars(cls, file):
-        vars_ = []
-        
-        while (var := Var.from_file(file)):
-            if not var.__class__ in cls.VALID_VARS:
-                raise Exception()
-
-            if not var.__class__ == Param and any(x.__class__ is var.__class__ for x in vars_):
-                raise Exception()
-
-            vars_.append(var)
-
-        return vars_
 
     def __init__(self, desc = "", vars_ = None):
         self.desc = desc
@@ -110,8 +48,6 @@ class Script(Data):
 
 class Property(Data):
     NAME = 'property'
-    SIMPLE_END = ('auto', 'autoreadonly')
-    EXT_END = 'endproperty'
     VALID_VARS = (
         Get,
         Set,
@@ -134,9 +70,51 @@ class Function(Data_Param):
         Return
     )
 
-DATA_TYPES = {
-    Script.NAME : Script,
-    Property.NAME : Property,
-    Event.NAME : Event,
-    Function.NAME : Function
-}
+class Data_Factory:
+    def __new__(cls, header, comment):
+        data_type = cls._get_type(header)
+        
+        desc = cls._parse_desc(comment)
+        
+        if variables:
+            cls._parse_vars(variables)
+
+        return cls(desc, vars_)
+
+    @staticmethod
+    def _get_type(header):
+        header = header.lower()
+
+        for key in DATA_TYPES:
+            type_index = header_lower.find(key)
+            if type_index != -1:
+                return key
+
+        # Could not find type
+        raise Exception("No valid type!")
+
+    @staticmethod
+    def _parse_desc(file):
+        has_vars = False
+        desc = ""
+
+        
+            
+            desc += line + '\n'
+
+        return has_vars, desc[:-1]
+
+    @staticmethod
+    def _parse_vars(cls, file):
+        vars_ = []
+        
+        while (var := Var_Factory(file)):
+            if not var.__class__ in cls.VALID_VARS:
+                raise Exception()
+
+            if not var.__class__ == Param and any(x.__class__ is var.__class__ for x in vars_):
+                raise Exception()
+
+            vars_.append(var)
+
+        return vars_

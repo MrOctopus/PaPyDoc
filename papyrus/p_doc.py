@@ -1,43 +1,24 @@
 from collections import UserList
 from bisect import insort
+from functools import partial
 
-from common.defines import DOC_START
-from common.util import sanitize_line
+from common.defines import DOC_START, DOC_END
+from common.util import sanitize_line, read_until
 
-from .p_data import Script, Property, Event, Function, DATA_TYPES
+from .p_data import Script, Property, Event, Function
 
 class Doc:
-    @classmethod
-    def from_file(cls, file):
-        header = cls._parse_header(file)
+    def __init__(self, header, data):
+        self.header = header
+        self.data = data
 
-        if not header:
-            return None
+    def __eq__(self, other):
+        return self.name == other.name
 
-        header_lower = header.lower()
+    def __lt__(self, other):
+        return self.name < other.name
 
-        type_ = cls._get_type(header_lower)
-        name = cls._get_name(header, header_lower, type_)
-        
-        data = DATA_TYPES[type_].from_file(file)
-
-        if isinstance(data, Property) and not header_lower.endswith(Property.SIMPLE_END):
-            cls._skip_property(file)
-
-        return cls(header, name, data)
-
-    @staticmethod
-    def _get_type(header_lower):
-        for key in DATA_TYPES:
-            type_index = header_lower.find(key)
-            if type_index != -1:
-                return key
-
-        # Could not find type
-        raise Exception()
-
-    @staticmethod
-    def _get_name(header, header_lower, type_):
+    def _get_name(self, header, type_):
         start_index = header_lower.find(type_)
             
         if start_index == -1:
@@ -58,49 +39,6 @@ class Doc:
 
         raise Exception()
 
-    @staticmethod
-    def _parse_header(file):      
-        prev_line = ""
-
-        while True:
-            prev_pos = file.tell()
-            line = file.readline()
-
-            if not line:
-                return ""
-
-            line = line.strip()
-
-            if line and line[0] is DOC_START:
-                file.seek(prev_pos)
-                return prev_line
-
-            prev_line = line
-
-    @staticmethod
-    def _skip_property(file):
-        while True:
-            line = file.readline()
-
-            if not line:
-                raise Exception()
-
-            line = line.strip()
-
-            if line and line.lower().startswith(Property.EXT_END):
-                break
-
-    def __init__(self, header, name, data):
-        self.header = header
-        self.name = name
-        self.data = data
-        
-    def __eq__(self, other):
-        return self.name == other.name
-
-    def __lt__(self, other):
-        return self.name < other.name
-
     def to_md(self):
         return "\n#### <a id=\"{}\"></a> `{}`{}\n***".format(self.name, self.header, self.data.to_md())
 
@@ -113,29 +51,67 @@ class Doc_Container(UserList):
         self.name = name
         self.type_ = type_
 
-    def __add__(self, doc):
-        if isinstance(doc.data, self.type_):
-            return super().__add__(doc)
-        return False
-
     def insort(self, doc):
         if isinstance(doc.data, self.type_):
             return insort(self, doc)
         return False
-
-    def append(self, doc):
-        if isinstance(doc.data, self.type_):
-            return super().append(doc) 
-        return False
-
-    def extend(self, doc_list):
-        for doc in doc_list:
-            if not isinstance(doc.data, self.type_):
-                return False
-        return super().extend(doc_list)
 
     def to_md(self):
         return "\n## " + self.name
 
     def to_md_index(self):
         return "\n### " + self.name
+
+class Doc_Factory:
+    def __new__(cls, file):
+        try:
+            header, comment = cls._next_doc(file)
+
+            data = Data_Factory(header, comment)
+
+            if isinstance(data, Property) and not header_lower.endswith(('auto', 'autoreadonly')):
+                read_until(file, cls.property_ends)
+
+            return Doc(header, data)
+        except EOFError:
+            return None
+
+    @classmethod
+    def _next_doc(cls, file):
+        header, line = read_until(file, cls.comment_starts)
+        comment = []
+
+        if len(line) == 1 or not cls.comment_ends(line[1:], comment = comment):
+            try:
+                comment_ends_partial = partial(cls.comment_ends, comment = comment)
+                read_until(file, comment_ends_partial)
+            except EOFError:
+                raise Exception("Malformed comment")
+
+        return sanitize_line(header), comment
+
+    @staticmethod
+    def comment_starts(line):
+        if line[0] is DOC_START:
+            return True
+        
+        return False
+
+    @staticmethod
+    def comment_ends(line, comment):
+        index = line.find(DOC_END)
+        
+        if index != -1:
+            if index > 0:
+                comment.append(line[:index])
+            return True
+
+        comment.append(line)
+        return False
+
+    @staticmethod
+    def property_ends(line):
+        if line.lower().startswith("endproperty"):
+            return True
+        
+        return False

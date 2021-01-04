@@ -1,14 +1,12 @@
 from os import path
-
 from common.util import sanitize_line
-
 from .p_data import Script, Property, Event, Function
-from .p_doc import Doc, Doc_Container
+from .p_doc import Doc_Factory, Doc_Container, Doc
 
 class PapyDoc:
     @classmethod
-    def from_file_path(cls, file_path):
-        with open(file_path, 'r') as file:
+    def from_file(cls, filename):
+        with open(filename, 'r') as file:
             file_doc, doc_containers = cls._parse_docs(file)
             return cls(file_doc, doc_containers)
     
@@ -20,7 +18,7 @@ class PapyDoc:
             raise Exception("Has no content.")
         
         file.seek(0, 0)
-        file_doc = Doc.from_file(file)
+        file_doc = Doc_Factory(file)
         
         if not file_doc:
             raise Exception("Has no documentation.")
@@ -39,7 +37,7 @@ class PapyDoc:
             file_name = path.splitext(path.basename(file.name))[0].lower()
             file_doc = Doc(sanitize_line(header), file_name, Script())
 
-        while doc := Doc.from_file(file):
+        while doc := Doc_Factory(file):
             for container in doc_containers:
                 if container.insort(doc):
                     break
