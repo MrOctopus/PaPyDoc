@@ -57,6 +57,9 @@ class Var_Factory:
     def __new__(cls, file):
         type_, desc = cls._parse_var(file)
 
+        if not var.__class__ in type.VALID_VARS:
+                raise Exception()
+
         if not type_:
             return None
 

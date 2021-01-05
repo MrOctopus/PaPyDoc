@@ -1,5 +1,6 @@
 from abc import ABC
 from common.defines import DOC_VAR
+from common.exceptions import InvalidDataType
 from .p_var import Var, Author, Version, Get, Set, Usage, Param, Return
 
 class Data(ABC):
@@ -61,7 +62,6 @@ class Event(Data_Param):
         Usage
     )
 
-
 class Function(Data_Param):
     NAME = 'function'
     VALID_VARS = (
@@ -71,38 +71,37 @@ class Function(Data_Param):
     )
 
 class Data_Factory:
-    TYPES = {
-        Script.NAME : Script,
-        Property.NAME : Property,
-        Event.NAME : Event,
-        Function.NAME : Function
-    }
+    TYPES = (
+        Script,
+        Property,
+        Event,
+        Function
+    )
 
     def __new__(cls, header, comment):
-        #data_type = cls._get_type(header)
-        
-        desc = cls._parse(comment)
-        desc_len = len(desc)
+        data_type = cls._parse_type(header)
+        description = cls._parse_description(comment)
+        variables = None
 
-        if desc_len < len(comment):
-            variables = cls._parse_vars(comment[desc_len + 1:])
+        # If description length is < comment length,
+        # we need to parse variable data
+        if (desc_len := len(description)) < len(comment):
+            variables = cls._parse_variables(data_type, comment[desc_len + 1:])
 
-        return Data(desc, vars_)
+        return data_type('\n'.join(description), variables)
 
-    @staticmethod
-    def _get_type(header):
+    @classmethod
+    def _parse_type(cls, header):
         header = header.lower()
+        matches = (type_ for type_ in cls.TYPES if header.find(type_.NAME))
 
-        for key in DATA_TYPES:
-            type_index = header_lower.find(key)
-            if type_index != -1:
-                return key
+        if data_type := next(matches):
+            return data_type
 
-        # Could not find type
-        raise Exception("No valid type!")
+        raise InvalidDataType()
 
     @staticmethod
-    def _parse(comment):    
+    def _parse_description(comment):    
         i = 0
 
         for line in comment:
@@ -113,16 +112,18 @@ class Data_Factory:
         return comment[0:i]
 
     @staticmethod
-    def _parse_vars(type, variables):
+    def _parse_variables(data_type, comment):
         vars_ = []
+        start = 0
+        end = 0
+
+        for line in comment:
+            if line[0] is DOC_VAR
         
-        while (var := Var_Factory(file)):
-            if not var.__class__ in type.VALID_VARS:
-                raise Exception()
+        while (var := Var_Factory(data_type, comment)):
+            vars_.append(var)        
 
-            if not var.__class__ == Param and any(x.__class__ is var.__class__ for x in vars_):
-                raise Exception()
-
-            vars_.append(var)
+        if not isinstance(data_type, Data_Param) and sum(isinstance(var, Param) for var in variables) > 1:
+            raise Exception()
 
         return vars_

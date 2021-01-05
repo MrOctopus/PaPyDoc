@@ -1,4 +1,5 @@
 from os import path
+from common.exceptions import ParsingFailed
 from common.util import sanitize_line
 from .p_data import Script, Property, Event, Function
 from .p_doc import Doc_Factory, Doc_Container, Doc
@@ -15,7 +16,7 @@ class PapyDoc:
         header = file.readline()
 
         if not header:
-            raise Exception("Has no content.")
+            raise ParsingFailed(EOFError())
         
         file.seek(0, 0)
         file_doc = Doc_Factory(file)

@@ -9,6 +9,7 @@ import itertools
 
 from os import path
 from common.defines import FILE_EXT
+from common.exceptions import ParsingFailed
 from papyrus.p_file import PapyDoc
 
 def is_dir(string):
@@ -48,8 +49,9 @@ def main():
             #    papy_doc.create_md_at(path.dirname(filename))
 
             readFiles += 1
-        except Exception as e:
+        except ParsingFailed as e:
             print(e)
+            print(e.error)
 
 if __name__ == "__main__":
     main()
