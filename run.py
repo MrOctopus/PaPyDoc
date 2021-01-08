@@ -43,10 +43,10 @@ def main():
         try:
             papy_doc = PapyDoc.from_file(filename)
 
-            #if args.output:
-            #    papy_doc.create_md_at(args.output)
-            #else:
-            #    papy_doc.create_md_at(path.dirname(filename))
+            if args.output:
+                papy_doc.create_md_at(args.output)
+            else:
+                papy_doc.create_md_at(path.dirname(filename))
 
             readFiles += 1
         except ParsingFailed as e:

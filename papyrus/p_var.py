@@ -1,60 +1,8 @@
 from abc import ABC
 from common.defines import DOC_VAR, DOC_END
 
-VARIABLES = {}
-
-class Var(ABC):
-    NAME = ''
-
-    def __init__(self, desc):
-        self.desc = desc
-
-    def to_md(self):
-        return "\n\n##### {}:\n{}".format(self.__class__.NAME.capitalize(), self.desc)
-
-class Author(Var):
-    NAME = 'author'
-
-    def to_md(self):
-        return "\n### {}: {}".format(self.__class__.NAME.capitalize(), self.desc)
-
-class Version(Var):
-    NAME = 'version'
-
-    def to_md(self):
-        return "\n### {}: {}".format(self.__class__.NAME.capitalize(), self.desc)
-
-class Param(Var):
-    NAME = 'param'
-
-    def to_md(self):
-        return "\n* " + self.desc
-
-class Get(Var):
-    NAME = 'get'
-
-class Set(Var):
-    NAME = 'set'
-
-class Usage(Var):
-    NAME = 'usage'
-
-class Return(Var):
-    NAME = 'return'
-
-
 class Var_Factory:
-    TYPES = {
-        Author.NAME : Author,
-        Version.NAME : Version,
-        Param.NAME : Param,
-        Get.NAME : Get,
-        Set.NAME : Set,
-        Usage.NAME : Usage,
-        Return.NAME : Return
-    }
-
-    def __new__(cls, file):
+    def __new__(cls, type_, comment):
         type_, desc = cls._parse_var(file)
 
         if not var.__class__ in type.VALID_VARS:

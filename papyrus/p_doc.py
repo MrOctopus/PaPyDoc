@@ -1,58 +1,34 @@
-from collections import UserList
-from bisect import insort
+from collections import deque
 from functools import partial
 
-from common.defines import DOC_START, DOC_END
-from common.exceptions import ParsingFailed, MalformedHeader, MalformedComment
+from common.defines import DOC_START, DOC_END, DOC_VAR
+from common.exceptions import ParsingFailed, MalformedHeader, MalformedComment, InvalidDataType
 from common.util import sanitize_line, read_until
 
-from .p_data import Script, Property, Event, Function, Data_Factory
-
-class Doc:
-    def __init__(self, header, name, data):
-        self.header = header
-        self.name = name
-        self.data = data
-
-    def __eq__(self, other):
-        return self.name == other.name
-
-    def __lt__(self, other):
-        return self.name < other.name
-
-    def to_md(self):
-        return "\n#### <a id=\"{}\"></a> `{}`{}\n***".format(self.name, self.header, self.data.to_md())
-
-    def to_md_index(self):
-        return "\n* [{0}](#{0})".format(self.name)
-
-class Doc_Container(UserList):
-    def __init__(self, name, type_):
-        super().__init__([])
-        self.name = name
-        self.type_ = type_
-
-    def insort(self, doc):
-        if isinstance(doc.data, self.type_):
-            return insort(self, doc)
-        return False
-
-    def to_md(self):
-        return "\n## " + self.name
-
-    def to_md_index(self):
-        return "\n### " + self.name
+from .p_types import VAR_TYPES, DOC_TYPES, Property, Doc_Param, Param
+from .p_var import Var_Factory
 
 class Doc_Factory:
     def __new__(cls, file):
         try:
+            # Header and comment
             header, comment = cls._get_next_doc(file)
-            data = Data_Factory(header, comment)
+            header_lower = header.lower()
             
-            #if isinstance(data, Property) and not header_lower.endswith(('auto', 'autoreadonly')):
-            #    read_until(file, cls.property_ends)
+            # Parse
+            type_ = cls._parse_type(header_lower)
+            name = cls._parse_name(header, header_lower, type_)
+            description = cls._parse_description(comment)
+            #variables = cls._parse_variables(type_, comment)
+            variables = None
 
-            return Doc(header, data)
+            print(description)
+
+            # Skip if property contains functions
+            if type_ is Property and not header_lower.endswith(('auto', 'autoreadonly')):
+                read_until(file, cls.property_ends)
+
+            return type_(header, name, description, variables)
         except EOFError:
             return None
         except Exception as e:
@@ -61,7 +37,7 @@ class Doc_Factory:
     @classmethod
     def _get_next_doc(cls, file):
         header, line = read_until(file, cls.comment_starts)
-        comment = []
+        comment = deque([])
 
         # This looks complicated, so here's an explanation:
         # If len(line) is == 1, that means the only char is the start block on the line,
@@ -78,29 +54,64 @@ class Doc_Factory:
 
         return sanitize_line(header), comment
 
-    @classmethod
-    def _parse_name(cls):
-        header_lower = self.header.lower()
+    @staticmethod
+    def _parse_type(header_lower):
+        matches = (type_ for type_ in DOC_TYPES if header_lower.find(type_.NAME) != -1)
 
-        start_index = header_lower.find(self.data.NAME)
+        try:
+            return next(matches)
+        except StopIteration:
+            raise InvalidDataType()
+
+    @staticmethod
+    def _parse_name(header, header_lower, type_):
+        start_index = header_lower.find(type_.NAME)
 
         if start_index == -1:
             raise MalformedHeader()
 
-        start_index = start_index + len(self.data.NAME) + 1
+        start_index = start_index + len(type_.NAME) + 1
 
-        if self.data.NAME in (Script.NAME, Property.NAME):
+        if type_.IS_COMPLEX:
             end_index = header_lower.find(' ', start_index)
 
             if end_index != -1:
-                return self.header[start_index:end_index]
+                return header[start_index:end_index]
             else:
-                return self.header[start_index:]
+                return header[start_index:]
         
         elif (end_index := header_lower.find('(', start_index)) != -1:
-            return self.header[start_index:end_index]
+            return header[start_index:end_index]
 
         raise MalformedHeader()
+
+    @staticmethod
+    def _parse_description(comment):    
+        description = ""
+
+        while comment:
+            line = comment.popleft()
+
+            if not line[0] is DOC_VAR:
+                description += line + '\n'
+            elif len(line) > 1:
+                comment.appendleft(line[1:])
+
+            break
+
+        return description[:-1]
+
+    @staticmethod
+    def _parse_variables(data_type, comment):
+        variables = []
+
+        while (var := Var_Factory(data_type, comment)):
+            variables.append(var)        
+
+        if not isinstance(data_type, Doc_Param) and sum(isinstance(var, Param) for var in variables) > 1:
+            raise Exception()
+
+        return variables
 
     @staticmethod
     def comment_starts(line):

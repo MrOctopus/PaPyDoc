@@ -1,8 +1,28 @@
 from os import path
+from collections import UserList
+from bisect import insort
+
 from common.exceptions import ParsingFailed
 from common.util import sanitize_line
-from .p_data import Script, Property, Event, Function
-from .p_doc import Doc_Factory, Doc_Container, Doc
+from .p_types import Script, Property, Event, Function
+from .p_doc import Doc_Factory
+
+class Doc_Container(UserList):
+    def __init__(self, name, type_):
+        super().__init__([])
+        self.name = name
+        self.type_ = type_
+
+    def insort(self, doc):
+        if isinstance(doc, self.type_):
+            return insort(self, doc)
+        return False
+
+    def to_md(self):
+        return "\n## " + self.name
+
+    def to_md_index(self):
+        return "\n### " + self.name
 
 class PapyDoc:
     @classmethod
@@ -30,13 +50,13 @@ class PapyDoc:
             Doc_Container("Functions", Function)
         ]
 
-        if not isinstance(file_doc.data, Script):
+        if not isinstance(file_doc, Script):
             for container in doc_containers:
                 if container.append(file_doc):
                     break
 
             file_name = path.splitext(path.basename(file.name))[0].lower()
-            file_doc = Doc(sanitize_line(header), file_name, Script())
+            file_doc = Script(sanitize_line(header), file_name, "", None)
 
         while doc := Doc_Factory(file):
             for container in doc_containers:
@@ -52,9 +72,6 @@ class PapyDoc:
     def isempty(self):
         return not any(self.doc_containers)
 
-    def to_md(self):
-        return "# Documentation ({}){}".format(self.doc.name, self.doc.data.to_md())
-
     def create_md_at(self, file_path):
         if self.isempty():
             return
@@ -63,7 +80,7 @@ class PapyDoc:
         file_path = path.join(file_path, file_name)
 
         with open(file_path, 'w') as file:
-            file.write(self.to_md())
+            file.write(self.doc.to_md())
             file.write("\n\n## Overview")
 
             # Index
