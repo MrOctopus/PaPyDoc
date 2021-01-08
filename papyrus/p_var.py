@@ -1,99 +1,37 @@
-from common.defines import DOC_VAR, DOC_END
+from common.defines import DOC_VAR
+from common.exceptions import MalformedVariable, InvalidDataType
+from .p_types import VAR_TYPES
 
-class Var:
-    NAME = ''
-
-    @classmethod
-    def from_file(cls, file):
-        type_, desc = cls._parse_var(file)
-
-        if not type_:
-            return None
-
-        return VAR_TYPES[type_](desc)
+class Var_Factory:
+    def __new__(cls, comment):
+        type_, description = cls._parse_var(comment)
+        return type_(description)
 
     @staticmethod
-    def _parse_var(file):
-        line = file.readline().strip()
-        
-        if line[0] == DOC_END:
-            return None, None
-        
-        line = line.split(' ')
+    def _parse_var(comment):
+        type_string, unused, description = comment.popleft().partition(' ')
 
-        if len(line) <= 1:
-            raise Exception()
+        # String could not be partitioned
+        # so type cannot be determined
+        if len(description) < 1:
+            raise MalformedVariable()
 
-        type_ = line[0]
+        type_string = type_string.lower()
+        matches = (x for x in VAR_TYPES if type_string == x.NAME)
 
-        if len(type_) <= 1:
-            raise Exception()
+        try:
+            type_ = next(matches)
+            description += '\n'
 
-        type_ = type_[1:].lower()
-        desc = ' '.join(line[1:]) + '\n'
+            while comment:
+                line = comment.popleft()
 
-        while True:
-            prev_pos = file.tell()
-            line = file.readline()
-            
-            if not line:
-                raise Exception()
-            
-            line = line.strip()
+                if line[0] is DOC_VAR:
+                    comment.appendleft(line[1:])
+                    break
 
-            if not line:
-                continue
+                description += line + '\n'
 
-            if line[0] == DOC_VAR or line[0] == DOC_END:
-                file.seek(prev_pos)
-                break
-            
-            desc = desc + line + '\n'
-
-        return type_, desc[:-1]
-
-    def __init__(self, desc):
-        self.desc = desc
-
-    def to_md(self):
-        return "\n\n##### {}:\n{}".format(self.__class__.NAME.capitalize(), self.desc)
-
-class Author(Var):
-    NAME = 'author'
-
-    def to_md(self):
-        return "\n### {}: {}".format(self.__class__.NAME.capitalize(), self.desc)
-
-class Version(Var):
-    NAME = 'version'
-
-    def to_md(self):
-        return "\n### {}: {}".format(self.__class__.NAME.capitalize(), self.desc)
-
-class Param(Var):
-    NAME = 'param'
-
-    def to_md(self):
-        return "\n* " + self.desc
-
-class Get(Var):
-    NAME = 'get'
-
-class Set(Var):
-    NAME = 'set'
-
-class Usage(Var):
-    NAME = 'usage'
-
-class Return(Var):
-    NAME = 'return'
-
-VAR_TYPES = {
-    Author.NAME : Author,
-    Version.NAME : Version,
-    Param.NAME : Param,
-    Get.NAME : Get,
-    Set.NAME : Set,
-    Usage.NAME : Usage,
-    Return.NAME : Return,
-}
+            return type_, description[:-1]
+        except StopIteration:
+            raise InvalidDataType()

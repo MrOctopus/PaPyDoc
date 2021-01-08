@@ -5,53 +5,53 @@ __version__ = "1.0.0"
 
 import argparse
 import glob
+import itertools
 
 from os import path
-
 from common.defines import FILE_EXT
-
+from common.exceptions import ParsingFailed
 from papyrus.p_file import PapyDoc
+
+def is_dir(string):
+    if not path.isdir(string):
+        raise NotADirectoryError(string)
+    return string
 
 def main():
     arg_parser = argparse.ArgumentParser(prog = "PaPyDoc")
-    arg_parser.add_argument("-r", dest = "rec", help = "Enables recursive search", action='store_true')
-    arg_parser.add_argument("-o", dest = "output", help = "Output path")
-    arg_parser.add_argument("path", help = "specifies the file path")
+    arg_parser.add_argument("-o", dest = "output", help = "Output path", type = is_dir)
+    arg_parser.add_argument("path", help = "specifies the file path", type = str)
 
     args = arg_parser.parse_args()
 
-    if path.isfile(args.path):
-        ext = path.splitext(args.path)[1].lower()
-
-        if ext != FILE_EXT:
-            if ext:
-                raise Exception()
-
-            args.path += FILE_EXT
-
-    if args.rec:
-        args.path = path.join('**', args.path)
-
-    file_paths = glob.iglob(args.path, recursive=args.rec)
-    readFiles = 0
+    is_recursive = True if args.path.find('**') else False
+    files = glob.iglob(args.path, recursive = is_recursive)
 
     print(arg_parser.prog + ':')
 
-    for file_path in file_paths:
-        print(file_path)
+    try:
+        first_file = next(files)
+    except StopIteration:
+        print('File does not exist: ')
+    
+    readFiles = 0
+
+    for filename in itertools.chain([first_file], files):
+        if not filename.lower().endswith(FILE_EXT):
+            continue
 
         try:
-            papy_doc = PapyDoc.from_file_path(file_path)
+            papy_doc = PapyDoc.from_file(filename)
 
             if args.output:
                 papy_doc.create_md_at(args.output)
             else:
-                papy_doc.create_md_at(path.dirname(file_path))
+                papy_doc.create_md_at(path.dirname(filename))
 
             readFiles += 1
-            print(readFiles)
-        except Exception as e:
+        except ParsingFailed as e:
             print(e)
+            print(e.error)
 
 if __name__ == "__main__":
     main()
