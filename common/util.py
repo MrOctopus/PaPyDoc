@@ -29,7 +29,7 @@ def read_until(file, is_true):
         if not line:
             continue
 
-        if is_true(line):
+        if not is_true(line):
+            prev_line = line
+        else:
             return prev_line, line
-
-        prev_line = line

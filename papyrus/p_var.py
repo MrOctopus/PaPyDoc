@@ -1,54 +1,37 @@
-from abc import ABC
-from common.defines import DOC_VAR, DOC_END
+from common.defines import DOC_VAR
+from common.exceptions import MalformedVariable, InvalidDataType
+from .p_types import VAR_TYPES
 
 class Var_Factory:
-    def __new__(cls, type_, comment):
-        type_, desc = cls._parse_var(file)
-
-        if not var.__class__ in type.VALID_VARS:
-                raise Exception()
-
-        if not type_:
-            return None
-
-        return VAR_TYPES[type_](desc)
+    def __new__(cls, comment):
+        type_, description = cls._parse_var(comment)
+        return type_(description)
 
     @staticmethod
-    def _parse_var(file):
-        line = file.readline().strip()
-        
-        if line[0] == DOC_END:
-            return None, None
-        
-        line = line.split(' ')
+    def _parse_var(comment):
+        type_string, unused, description = comment.popleft().partition(' ')
 
-        if len(line) <= 1:
-            raise Exception()
+        # String could not be partitioned
+        # so type cannot be determined
+        if len(description) < 1:
+            raise MalformedVariable()
 
-        type_ = line[0]
+        type_string = type_string.lower()
+        matches = (x for x in VAR_TYPES if type_string == x.NAME)
 
-        if len(type_) <= 1:
-            raise Exception()
+        try:
+            type_ = next(matches)
+            description += '\n'
 
-        type_ = type_[1:].lower()
-        desc = ' '.join(line[1:]) + '\n'
+            while comment:
+                line = comment.popleft()
 
-        while True:
-            prev_pos = file.tell()
-            line = file.readline()
-            
-            if not line:
-                raise Exception()
-            
-            line = line.strip()
+                if line[0] is DOC_VAR:
+                    comment.appendleft(line[1:])
+                    break
 
-            if not line:
-                continue
+                description += line + '\n'
 
-            if line[0] == DOC_VAR or line[0] == DOC_END:
-                file.seek(prev_pos)
-                break
-            
-            desc = desc + line + '\n'
-
-        return type_, desc[:-1]
+            return type_, description[:-1]
+        except StopIteration:
+            raise InvalidDataType()

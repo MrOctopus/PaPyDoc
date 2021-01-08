@@ -11,6 +11,10 @@ class MalformedComment(Exception):
     def __init__(self):
         super().__init__("Malformed Comment")
 
+class MalformedVariable(Exception):
+    def __init__(self):
+        super().__init__("Malformed variable")
+
 class InvalidDataType(Exception):
     def __init__(self):
         super().__init__("Invalid data type")

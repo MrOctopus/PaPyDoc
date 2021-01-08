@@ -5,7 +5,7 @@ from common.defines import DOC_START, DOC_END, DOC_VAR
 from common.exceptions import ParsingFailed, MalformedHeader, MalformedComment, InvalidDataType
 from common.util import sanitize_line, read_until
 
-from .p_types import VAR_TYPES, DOC_TYPES, Property, Doc_Param, Param
+from .p_types import DOC_TYPES, Property, Doc_Param, Param
 from .p_var import Var_Factory
 
 class Doc_Factory:
@@ -19,10 +19,7 @@ class Doc_Factory:
             type_ = cls._parse_type(header_lower)
             name = cls._parse_name(header, header_lower, type_)
             description = cls._parse_description(comment)
-            #variables = cls._parse_variables(type_, comment)
-            variables = None
-
-            print(description)
+            variables = cls._parse_variables(type_, comment)
 
             # Skip if property contains functions
             if type_ is Property and not header_lower.endswith(('auto', 'autoreadonly')):
@@ -56,7 +53,7 @@ class Doc_Factory:
 
     @staticmethod
     def _parse_type(header_lower):
-        matches = (type_ for type_ in DOC_TYPES if header_lower.find(type_.NAME) != -1)
+        matches = (x for x in DOC_TYPES if header_lower.find(x.NAME) != -1)
 
         try:
             return next(matches)
@@ -92,24 +89,28 @@ class Doc_Factory:
         while comment:
             line = comment.popleft()
 
-            if not line[0] is DOC_VAR:
-                description += line + '\n'
-            elif len(line) > 1:
+            if line[0] is DOC_VAR:
                 comment.appendleft(line[1:])
+                break
 
-            break
+            description += line + '\n'
 
         return description[:-1]
 
     @staticmethod
-    def _parse_variables(data_type, comment):
+    def _parse_variables(type_, comment):
         variables = []
 
-        while (var := Var_Factory(data_type, comment)):
-            variables.append(var)        
+        while comment:
+            var = Var_Factory(comment)
 
-        if not isinstance(data_type, Doc_Param) and sum(isinstance(var, Param) for var in variables) > 1:
-            raise Exception()
+            if not isinstance(var, type_.VALID_VARS):
+                raise Exception()
+
+            variables.append(var)
+
+        if not issubclass(type_, Doc_Param) and sum(isinstance(var, Param) for var in variables) > 1:
+            raise Exception("gg")
 
         return variables
 
