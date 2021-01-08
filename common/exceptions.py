@@ -18,3 +18,7 @@ class MalformedVariable(Exception):
 class InvalidDataType(Exception):
     def __init__(self):
         super().__init__("Invalid data type")
+
+class DataTypeNotUnique(Exception):
+    def __init__(self):
+        super().__init__("Data type should be unique")

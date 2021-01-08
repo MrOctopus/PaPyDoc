@@ -2,7 +2,7 @@ from collections import deque
 from functools import partial
 
 from common.defines import DOC_START, DOC_END, DOC_VAR
-from common.exceptions import ParsingFailed, MalformedHeader, MalformedComment, InvalidDataType
+from common.exceptions import ParsingFailed, MalformedHeader, MalformedComment, InvalidDataType, DataTypeNotUnique
 from common.util import sanitize_line, read_until
 
 from .p_types import DOC_TYPES, Property, Doc_Param, Param
@@ -105,12 +105,12 @@ class Doc_Factory:
             var = Var_Factory(comment)
 
             if not isinstance(var, type_.VALID_VARS):
-                raise Exception()
+                raise InvalidDataType()
+
+            if not issubclass(type_, Doc_Param) and any(type(x) is type(var) for x in variables):
+                raise DataTypeNotUnique()
 
             variables.append(var)
-
-        if not issubclass(type_, Doc_Param) and sum(isinstance(var, Param) for var in variables) > 1:
-            raise Exception("gg")
 
         return variables
 

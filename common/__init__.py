@@ -1,1 +1,1 @@
-__all__ = ('defines', 'util')
+__all__ = ('defines', 'util', 'exceptions')
