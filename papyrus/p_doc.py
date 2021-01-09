@@ -25,7 +25,7 @@ class Doc_Factory:
             if type_ is Property and not header_lower.endswith(('auto', 'autoreadonly')):
                 read_until(file, cls.property_ends)
 
-            return type_(header, name, description, variables)
+            return type_(name, header, description, variables)
         except EOFError:
             return None
         except Exception as e:
@@ -93,7 +93,7 @@ class Doc_Factory:
                 comment.appendleft(line[1:])
                 break
 
-            description += line + '\n'
+            description += f"{line}\n"
 
         return description[:-1]
 

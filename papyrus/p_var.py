@@ -30,7 +30,7 @@ class Var_Factory:
                     comment.appendleft(line[1:])
                     break
 
-                description += line + '\n'
+                description += f"{line}\n"
 
             return type_, description[:-1]
         except StopIteration:

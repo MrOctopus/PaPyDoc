@@ -11,16 +11,16 @@ class Var(ABC):
         self.desc = desc
 
     def to_md(self):
-        return "\n\n##### {}:\n{}".format(self.__class__.NAME.capitalize(), self.desc)
+        return f"\n\n##### {type(self).NAME.capitalize()}:\n{self.desc}"
 
 class Doc(ABC):
     NAME = ''
     IS_COMPLEX = False
     VALID_VARS = ()
 
-    def __init__(self, header, name, desc, vars_):
-        self.header = header
+    def __init__(self, name, header = "", desc = "", vars_ = None):
         self.name = name
+        self.header = header
         self.desc = desc
         self.vars_ = vars_
 
@@ -31,7 +31,7 @@ class Doc(ABC):
         return self.name < other.name
 
     def to_md(self):
-        return "\n#### <a id=\"{}\"></a> `{}`\n{}{}\n***".format(self.name, self.header, self.desc, self.to_md_vars())
+        return f"\n#### <a id=\"{self.name}\"></a> `{self.header}`\n{self.desc}{self.to_md_vars()}\n***"
 
     def to_md_vars(self):
         if not self.vars_:
@@ -40,7 +40,7 @@ class Doc(ABC):
         return '\n' + ''.join([var.to_md() for var in self.vars_])
 
     def to_md_index(self):
-        return "\n* [{0}](#{0})".format(self.name)
+        return f"\n* [{self.name}](#{self.name})"
 
 #
 # Variables
@@ -50,19 +50,19 @@ class Author(Var):
     NAME = 'author'
 
     def to_md(self):
-        return "\n### {}: {}".format(self.__class__.NAME.capitalize(), self.desc)
+        return f"\n### {type(self).NAME.capitalize()}: {self.desc}"
 
 class Version(Var):
     NAME = 'version'
 
     def to_md(self):
-        return "\n### {}: {}".format(self.__class__.NAME.capitalize(), self.desc)
+        return f"\n### {type(self).NAME.capitalize()}: {self.desc}"
 
 class Param(Var):
     NAME = 'param'
 
     def to_md(self):
-        return "\n* " + self.desc
+        return f"\n* {self.desc}"
 
 class Get(Var):
     NAME = 'get'
@@ -106,7 +106,7 @@ class Script(Doc):
     )
 
     def to_md(self):
-        return "# Documentation ({}){}\n{}".format(self.name, self.to_md_vars(), self.desc)
+        return f"# Documentation ({self.name}){self.to_md_vars()}\n{self.desc}"
 
 class Property(Doc):
     NAME = 'property'

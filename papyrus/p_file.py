@@ -1,104 +1,88 @@
 from os import path
-from collections import UserList
 from bisect import insort
+from collections import UserList
 
 from common.exceptions import ParsingFailed
-from common.util import sanitize_line
 from .p_types import Script, Property, Event, Function
 from .p_doc import Doc_Factory
 
-class Doc_Container(UserList):
-    def __init__(self, name, type_):
+class NamedList(UserList):
+    def __init__(self, name):
         super().__init__([])
         self.name = name
-        self.type_ = type_
-
-    def insort(self, doc):
-        if isinstance(doc, self.type_):
-            return insort(self, doc)
-        return False
 
     def to_md(self):
-        return "\n## " + self.name
+        return f"\n## {self.name}"
 
     def to_md_index(self):
-        return "\n### " + self.name
+        return f"\n### {self.name}"
 
 class PapyDoc:
     @classmethod
     def from_file(cls, filename):
         with open(filename, 'r') as file:
-            file_doc, doc_containers = cls._parse_docs(file)
-            return cls(file_doc, doc_containers)
+            file_doc, data = cls._parse_docs(file)
+            return cls(file_doc, data)
     
     @staticmethod
-    def _parse_docs(file):
-        header = file.readline()
-
-        if not header:
-            raise ParsingFailed(EOFError())
-        
-        file.seek(0, 0)
+    def _parse_docs(file):        
         file_doc = Doc_Factory(file)
         
         if not file_doc:
-            raise Exception("Has no documentation.")
+            raise ParsingFailed(EOFError("File is empty"))
         
-        doc_containers = [
-            Doc_Container("Properties", Property),
-            Doc_Container("Events", Event),
-            Doc_Container("Functions", Function)
-        ]
-
+        # We first make a dictionary
+        # to easily map read Docs
+        data = {
+            Property : NamedList("Properties"),
+            Event : NamedList("Events"),
+            Function : NamedList("Functions")
+        }
+        
         if not isinstance(file_doc, Script):
-            for container in doc_containers:
-                if container.append(file_doc):
-                    break
+            insort(data[type(file_doc)], file_doc)
 
             file_name = path.splitext(path.basename(file.name))[0].lower()
-            file_doc = Script(sanitize_line(header), file_name, "", None)
+            file_doc = Script(file_name)
 
         while doc := Doc_Factory(file):
-            for container in doc_containers:
-                if container.insort(doc):
-                    break
+            insort(data[type(doc)], doc)
 
-        return file_doc, doc_containers
+        # Convert data dict to a list,
+        # with only non-empty NamedLists
+        data = list((docs for docs in data.values() if docs))
+        
+        return file_doc, data
 
-    def __init__(self, doc, doc_containers):
-        self.doc = doc
-        self.doc_containers = doc_containers
-
-    def isempty(self):
-        return not any(self.doc_containers)
+    def __init__(self, file_doc, data):
+        self.file_doc = file_doc
+        self.data = data
 
     def create_md_at(self, file_path):
-        if self.isempty():
+        if not self.data:
             return
         
-        file_name = self.doc.name + '.md'
+        file_name = self.file_doc.name + '.md'
         file_path = path.join(file_path, file_name)
 
         with open(file_path, 'w') as file:
-            file.write(self.doc.to_md())
+            file.write(self.file_doc.to_md())
             file.write("\n\n## Overview")
 
             # Index
-            for container in self.doc_containers:
-                if container:
-                    file.write(container.to_md_index())
+            for docs in self.data:
+                file.write(docs.to_md_index())
 
-                    for doc in container:
-                        file.write(doc.to_md_index())
+                for doc in docs:
+                    file.write(doc.to_md_index())
 
-                    file.write("\n")
+                file.write('\n')
 
             # Content
-            for container in self.doc_containers:
-                if container:
-                    file.write(container.to_md())
+            for docs in self.data:
+                file.write(docs.to_md())
 
-                    for doc in container:
-                        file.write(doc.to_md())
+                for doc in docs:
+                    file.write(doc.to_md())
 
-                    file.write("\n")
+                file.write('\n')

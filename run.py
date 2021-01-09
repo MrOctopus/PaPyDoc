@@ -3,11 +3,11 @@
 __author__ = "NeverLost"
 __version__ = "1.0.0"
 
-import argparse
-import glob
-import itertools
-
+from argparse import ArgumentParser
 from os import path
+from glob import iglob
+from itertools import chain
+
 from common.defines import FILE_EXT
 from common.exceptions import ParsingFailed
 from papyrus.p_file import PapyDoc
@@ -18,25 +18,26 @@ def is_dir(string):
     return string
 
 def main():
-    arg_parser = argparse.ArgumentParser(prog = "PaPyDoc")
-    arg_parser.add_argument("-o", dest = "output", help = "Output path", type = is_dir)
-    arg_parser.add_argument("path", help = "specifies the file path", type = str)
+    # Create arg_pargse
+    arg_parser = ArgumentParser(prog = "PaPyDoc")
+    arg_parser.add_argument("-o", dest = "output", help = "Output directory", type = is_dir)
+    arg_parser.add_argument("path", help = "Glob path", type = str)
 
+    # Parse
     args = arg_parser.parse_args()
 
+    # Get files
     is_recursive = True if args.path.find('**') else False
-    files = glob.iglob(args.path, recursive = is_recursive)
+    files = iglob(args.path, recursive = is_recursive)
 
-    print(arg_parser.prog + ':')
+    print(f"{arg_parser.prog}:")
 
     try:
         first_file = next(files)
     except StopIteration:
         print('File does not exist: ')
-    
-    readFiles = 0
 
-    for filename in itertools.chain([first_file], files):
+    for filename in chain([first_file], files):
         if not filename.lower().endswith(FILE_EXT):
             continue
 
@@ -48,10 +49,9 @@ def main():
             else:
                 papy_doc.create_md_at(path.dirname(filename))
 
-            readFiles += 1
+            print(f"Generated markdown file for: {filename}")
         except ParsingFailed as e:
-            print(e)
-            print(e.error)
+            print(f"Parsing failed ({e.error}) for: {filename}")
 
 if __name__ == "__main__":
     main()
