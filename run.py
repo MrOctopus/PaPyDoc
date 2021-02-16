@@ -21,14 +21,13 @@ def main():
     # Create arg_pargse
     arg_parser = ArgumentParser(prog = "PaPyDoc")
     arg_parser.add_argument("-o", dest = "output", help = "Output directory", type = is_dir)
-    arg_parser.add_argument("path", help = "Glob path", type = str)
+    arg_parser.add_argument("path", help = "Path (Globa format)", type = str)
 
     # Parse
     args = arg_parser.parse_args()
 
     # Get files
-    is_recursive = True if args.path.find('**') else False
-    files = iglob(args.path, recursive = is_recursive)
+    files = iglob(args.path, recursive = True)
 
     print(f"{arg_parser.prog}:")
 
