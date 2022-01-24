@@ -53,12 +53,25 @@ class Doc_Factory:
 
     @staticmethod
     def _parse_type(header_lower):
-        matches = (x for x in DOC_TYPES if header_lower.find(x.NAME) != -1)
+        matches = []
 
-        try:
-            return next(matches)
-        except StopIteration:
+        for x in DOC_TYPES:
+            i = header_lower.find(x.NAME)
+            if i != -1:
+                matches.append((x, i))
+
+        matches_len = len(matches)
+
+        # No matches
+        if matches_len == 0:
             raise InvalidDataType()
+        
+        # One match
+        if matches_len == 1:
+            return matches[0][0]
+
+        # Several matches, pick the one with the lowest index
+        return min(matches, key = lambda t: t[1])[0]
 
     @staticmethod
     def _parse_name(header, header_lower, type_):
