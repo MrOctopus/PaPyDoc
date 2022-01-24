@@ -40,13 +40,13 @@ class PapyDoc:
         }
         
         if not isinstance(file_doc, Script):
-            insort(data[type(file_doc)], file_doc)
+            data[type(file_doc)].append(file_doc)
 
             file_name = path.splitext(path.basename(file.name))[0].lower()
             file_doc = Script(file_name)
 
         while doc := Doc_Factory(file):
-            insort(data[type(doc)], doc)
+            data[type(doc)].append(doc)
 
         # Convert data dict to a list,
         # with only non-empty NamedLists

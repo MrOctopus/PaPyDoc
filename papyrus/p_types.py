@@ -11,7 +11,7 @@ class Var(ABC):
         self.desc = desc
 
     def to_md(self):
-        return f"\n\n##### {type(self).NAME.capitalize()}:\n{self.desc}"
+        return f"\n\n**{type(self).NAME.capitalize()}:**\n{self.desc}"
 
 class Doc(ABC):
     NAME = ''
@@ -93,7 +93,7 @@ class Doc_Param(Doc):
         var_str = ""
 
         if len(params) > 0:
-            var_str = "\n\n##### {}s:{}".format(Param.NAME.capitalize(), ''.join([var.to_md() for var in params]))
+            var_str = "\n\n**{}s:**{}".format(Param.NAME.capitalize(), ''.join([var.to_md() for var in params]))
 
         return var_str +  ''.join([var.to_md() for var in rest])
 
