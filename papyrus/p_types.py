@@ -13,6 +13,11 @@ class Var(ABC):
     def to_md(self):
         return f"\n\n**{type(self).NAME.capitalize()}:**\n{self.desc}"
 
+class Flag(Var):
+    def to_md(self):
+        type_name = type(self).NAME
+        return f"\n\n* *Marked as **{type_name}***"
+
 class Doc(ABC):
     NAME = ''
     IS_COMPLEX = False
@@ -22,7 +27,11 @@ class Doc(ABC):
         self.name = name
         self.header = header
         self.desc = desc
-        self.vars_ = vars_
+        self.flags = []
+        self.vars = []
+
+        for var in vars_:
+            (self.vars, self.flags)[isinstance(var, Flag)].append(var)
 
     def __eq__(self, other):
         return self.name == other.name
@@ -31,13 +40,19 @@ class Doc(ABC):
         return self.name < other.name
 
     def to_md(self):
-        return f"\n#### <a id=\"{self.name}\"></a> `{self.header}`\n{self.desc}{self.to_md_vars()}\n***"
+        return f"\n#### <a id=\"{self.name}\"></a> `{self.header}`\n{self.desc}{self.to_md_flags()}{self.to_md_vars()}\n***"
 
-    def to_md_vars(self):
-        if not self.vars_:
+    def to_md_flags(self):
+        if not self.flags:
             return ''
 
-        return '\n' + ''.join([var.to_md() for var in self.vars_])
+        return f"\n\n**Flags**:{''.join([flag.to_md() for flag in self.flags])}"
+
+    def to_md_vars(self):
+        if not self.vars:
+            return ''
+
+        return f"\n{''.join([var.to_md() for var in self.vars])}"
 
     def to_md_index(self):
         return f"\n* [{self.name}](#{self.name})"
@@ -76,18 +91,24 @@ class Usage(Var):
 class Return(Var):
     NAME = 'return'
 
+class Deprecated(Flag):
+    NAME = 'deprecated'
+
+class Override(Flag):
+    NAME = 'override'
+
 #
 # Docs
 #
 
 class Doc_Param(Doc):
     def to_md_vars(self):
-        if not self.vars_:
+        if not self.vars:
             return ''
 
         params, rest = [], []
 
-        for var in self.vars_:
+        for var in self.vars:
             (rest, params)[isinstance(var, Param)].append(var)
 
         var_str = ""
@@ -114,14 +135,17 @@ class Property(Doc):
     VALID_VARS = (
         Get,
         Set,
-        Usage
+        Usage,
+        Deprecated
     )
 
 class Event(Doc_Param):
     NAME = 'event'
     VALID_VARS = (
         Param,
-        Usage
+        Usage,
+        Deprecated,
+        Override
     )
 
 class Function(Doc_Param):
@@ -129,7 +153,9 @@ class Function(Doc_Param):
     VALID_VARS = (
         Param,
         Usage,
-        Return
+        Return,
+        Deprecated,
+        Override
     )
 
 
@@ -144,7 +170,9 @@ VAR_TYPES = (
     Get,
     Set,
     Usage,
-    Return
+    Return,
+    Deprecated,
+    Override
 )
 
 DOC_TYPES = (

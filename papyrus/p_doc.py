@@ -5,7 +5,7 @@ from common.defines import DOC_START, DOC_END, DOC_VAR
 from common.exceptions import ParsingFailed, MalformedHeader, MalformedComment, InvalidDataType, DataTypeNotUnique
 from common.util import sanitize_line, read_until
 
-from .p_types import DOC_TYPES, Property, Doc_Param, Param
+from .p_types import DOC_TYPES, Property, Doc_Param
 from .p_var import Var_Factory
 
 class Doc_Factory:
